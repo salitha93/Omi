@@ -65,19 +65,26 @@ class Game extends Phaser.Scene {
 
         if (entryPointData)
         {
-            this.matchdata.players = entryPointData.players ;
+           // this.matchdata.players = entryPointData.players ;
 
         }
 
-        this.socket = io('http://localhost:3000');
+        this.socket = io('http://localhost:3002');
         //this.socket = io('https://server-omi.herokuapp.com');
 
-        this.socket.on('connect', function () {
+        this.socket.on('connect', function () 
+        {
             console.log('Connected!');
 
-            console.log(self.matchdata.players.length);
+            var player = {
+                playerID: self.playerID,
+                playerName: self.playerName,
+                playerPhoto: self.playerPhoto
+            }
 
-            var playerAlreadyAdded = false;
+            console.log(JSON.stringify(player));
+
+            /*var playerAlreadyAdded = false;
             for ( var i = 0; i < self.matchdata.players.length; i++ )
             {
                 if( self.matchdata.players[i].playerID === self.playerID)
@@ -112,20 +119,24 @@ class Game extends Phaser.Scene {
                     self.playerIndex = -1 ;
                 }
                 console.log(JSON.stringify(self.matchdata));
-            }
+            }*/
             
-            self.socket.emit("playerAdded",self.matchdata.players);
+            self.socket.emit("playerLoggedIn",player);
         });
 
         this.socket.on('playerAdded', function (players) {
-            if(self.matchdata.players < self.matchdata.players.length < players.length )
+
+            console.log("On Player Added")
+
+            self.matchdata.players = players;
+
+            for ( var i = 0; i < self.matchdata.players.length; i++ )
             {
-                self.matchdata.players = players;
-            }
-            else if( self.matchdata.players[self.matchdata.players.length-1].playerID !== players[players.length-1].playerID )
-            {
-                self.matchdata.players.push(players[players.length -1 ]);
-                self.socket.emit("playerAdded",self.matchdata.players);
+                if(self.matchdata.players[i].playerID === self.playerID )
+                {
+                    self.playerIndex = i;
+                    console.log("player Index: "+ self.playerIndex );
+                }
             }
 
             var rightPlayerIndex = (self.playerIndex +1)%4;
