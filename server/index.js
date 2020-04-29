@@ -3,8 +3,17 @@ const http = require('http').Server(server);
 const io = require('socket.io')(http);
 let playerSockets = [];
 let players = [];
+let tabledCards = [];
+var dealCards = []
+let playStarted = false;
+let playTurn = 0;
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3004;
+
+var getDeal = function()
+{
+    return [1,2,3,4,5,6,7,8];
+}
 
 io.on('connection', function (socket) {
     console.log('A user connected: ' + socket.id);
@@ -15,12 +24,28 @@ io.on('connection', function (socket) {
         io.emit('isPlayerA');
     };
 
-    socket.on('dealCards', function () {
+    /*socket.on('dealCards', function () {
         io.emit('dealCards');
+    });*/
+
+    socket.on('cardPlayed', function (gameObject, playerIndex) {
+
+        tabledCards.push({
+            playerIndex: playerIndex,
+            card: gameObject
+        });
+
+        io.emit('cardPlayed', gameObject, playerIndex);
     });
 
-    socket.on('cardPlayed', function (gameObject, isPlayerA) {
-        io.emit('cardPlayed', gameObject, isPlayerA);
+    socket.on('startPlay', function () {
+        dealCards = getDeal();
+        if(!playStarted)
+        {
+            playStarted =true;
+            console.log("Play Started")
+            io.emit('dealCards', dealCards, playTurn);
+        }
     });
 
     socket.on('playerLoggedIn', function (player) {
@@ -42,7 +67,7 @@ io.on('connection', function (socket) {
                 players.push(player);
             }
         }
-        io.emit('playerAdded', players);
+        io.emit('playerAdded', players, tabledCards, dealCards, playTurn);
     });
 
     socket.on('disconnect', function () {
