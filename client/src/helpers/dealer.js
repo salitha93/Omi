@@ -1,6 +1,6 @@
 class Dealer {
     constructor(scene) {
-        this.dealCards = () => {
+        this.dealCards = (deal) => {
             let playerSprite;
             let opponentSprite;
             if (scene.isPlayerA) {
@@ -10,12 +10,13 @@ class Dealer {
                 playerSprite = 'magentaCardFront';
                 opponentSprite = 'cyanCardBack';
             };
-            for (let i = 0; i < 5; i++) {
+
+            for (let i = 0; i < 8; i++) {
                 let playerCard = new Card(scene);
-                playerCard.render((475 + (i * 100))*(window.innerWidth/1280), 650*(window.innerHeight/780), playerSprite);
+                scene.dealCards.push(playerCard.render((50 + (i * 25))*scene.widthScale, 380*scene.heightScale, playerSprite));
 
                 let opponentCard = new Card(scene);
-                scene.opponentCards.push(opponentCard.render((475 + (i * 100))*(window.innerWidth/1280), 125*(window.innerHeight/780), opponentSprite).disableInteractive());
+                scene.opponentCards.push(opponentCard.render((50 + (i * 10))*scene.widthScale, 10*scene.heightScale, opponentSprite).disableInteractive());
             }
         }
     }

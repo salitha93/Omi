@@ -1,34 +1,78 @@
-/*import io from 'socket.io-client';
-/*import Card from '../helpers/card';
-import Dealer from "../helpers/dealer";
-import Zone from '../helpers/zone';*/
 class Game extends Phaser.Scene {
     constructor() {
         super({
             key: 'Game'
         });
+
+        this.profilePicScale = 0.1;
+        this.widthScale  = window.innerWidth/306;
+        this.heightScale = window.innerHeight/568;
     }
 
     addCurrentPlayerPhoto (key)
     {
-        this.add.image(400*(window.innerWidth/1280), 500*(window.innerHeight/780), key).setScale(0.3*(window.innerWidth/1280)).setInteractive();
+        this.add.image(150*this.widthScale, 310*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
     }
     addRightPlayerPhoto (key)
     {
-        this.add.image(600*(window.innerWidth/1280), 350*(window.innerHeight/780), key).setScale(0.3*(window.innerWidth/1280)).setInteractive();
+        this.add.image(285*this.widthScale, 180*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
     }
     addFrontPlayerPhoto (key)
     {
-        this.add.image(400*(window.innerWidth/1280), 200*(window.innerHeight/780), key).setScale(0.3*(window.innerWidth/1280)).setInteractive();
+        this.add.image(150*this.widthScale, 60*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
     }
     addLeftPlayerPhoto (key)
     {
-        this.add.image(200*(window.innerWidth/1280), 350*(window.innerHeight/780), key).setScale(0.3*(window.innerWidth/1280)).setInteractive();
+        this.add.image(25*this.widthScale, 180*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
+    }
+    addPlayerName(x ,y, key)
+    {
+        this.add.text(x*this.widthScale, y*this.heightScale, [key]).setFontSize(25*this.widthScale).setFontFamily('Georgia').setColor('#ffffff').setInteractive();
+    }
+
+    renderTabledCard( gameObject, playerIndex )
+    {
+        let sprite = gameObject.textureKey;
+            let card = new Card(this);
+            console.log("Rendring card of:"+ playerIndex );
+            console.log("Right Player"+this.rightPlayerIndex)
+            console.log("leftPlayerIndex"+this.leftPlayerIndex)
+            console.log("frontPlayerIndex"+this.frontPlayerIndex)
+            if ( (playerIndex === 0) && this.isSpectator ) {
+                //self.opponentCards.shift().destroy();
+                this.dropZone.data.values.cards.push(gameObject);
+                card.render((this.dropZone.x), (this.dropZone.y + this.dropZone.input.hitArea.height/4), sprite).disableInteractive();
+            }
+            else if(playerIndex === this.playerIndex)
+            {
+                this.dropZone.data.values.cards.push(gameObject);
+                card.render((this.dropZone.x), (this.dropZone.y + this.dropZone.input.hitArea.height/4), sprite).disableInteractive();
+            }
+            else if (playerIndex === this.rightPlayerIndex) {
+                //self.opponentCards.shift().destroy();
+                this.dropZone.data.values.cards.push(gameObject);
+                card.render((this.dropZone.x + this.dropZone.input.hitArea.width/4 ), (this.dropZone.y), sprite).disableInteractive();
+            }
+            else if (playerIndex === this.frontPlayerIndex)
+            {
+                this.dropZone.data.values.cards.push(gameObject);
+                card.render((this.dropZone.x), (this.dropZone.y - this.dropZone.input.hitArea.height/4), sprite).disableInteractive();
+            }
+            else if (playerIndex === this.leftPlayerIndex)
+            {
+                this.dropZone.data.values.cards.push(gameObject);
+                card.render((this.dropZone.x - this.dropZone.input.hitArea.width/4), (this.dropZone.y), sprite).disableInteractive();
+            }
+
+            if (this.dropZone.data.values.cards.length === 4 )
+            {
+                //wait few seconds and trigger event to finalize the round
+            }
     }
 
     create() {
 
-        console.log("Begun");
+        console.log("The game has begun");
 
         let entryPointData = FBInstant.getEntryPointData();
         console.log("testx");
@@ -37,19 +81,26 @@ class Game extends Phaser.Scene {
         this.add.text(0, 0).setText([
             'Player ID: ' + this.facebook.playerID,
             'Player Name: ' + this.facebook.playerName,
+            'Width: ' + window.innerWidth,
+            'Height: ' + window.innerHeight,
         ]);
-
-        /*this.load.image('playerCurrent', this.facebook.playerPhotoURL);
-        this.load.once('filecomplete-image-playerCurrent', this.addCurrentPlayerPhoto, this);
-        this.load.start();*/
 
         this.isPlayerA = false;
         this.opponentCards = [];
+        this.dealCards = [];
 
         this.playerID = this.facebook.playerID;
         this.playerName = this.facebook.playerName;
         this.playerPhoto = FBInstant.player.getPhoto();
-        this.playerIndex = 0;
+        this.playerIndex = -1;
+        this.rightPlayerIndex = 1;
+        this.frontPlayerIndex = 2;
+        this.leftPlayerIndex  = 3;
+        this.isSpectator = true;
+        this.tableID = -1;
+        this.playTurrn = -1;
+
+        this.playStarted = false;
 
         this.matchdata = {
             players: [],
@@ -65,143 +116,177 @@ class Game extends Phaser.Scene {
 
         if (entryPointData)
         {
-           // this.matchdata.players = entryPointData.players ;
-
+           this.tableID = entryPointData.tableID;
         }
 
-        this.socket = io('http://localhost:3002');
-        //this.socket = io('https://server-omi.herokuapp.com');
+        console.log("tableID: " + this.tableID);
+
+        //this.socket = io('http://localhost:3004');
+        this.socket = io('https://server-omi.herokuapp.com');
 
         this.socket.on('connect', function () 
         {
             console.log('Connected!');
 
             var player = {
-                playerID: self.playerID,
-                playerName: self.playerName,
-                playerPhoto: self.playerPhoto
+                playerID    : self.playerID,
+                playerName  : self.playerName,
+                playerPhoto : self.playerPhoto,
+                tableID     : self.tableID
             }
 
             console.log(JSON.stringify(player));
-
-            /*var playerAlreadyAdded = false;
-            for ( var i = 0; i < self.matchdata.players.length; i++ )
-            {
-                if( self.matchdata.players[i].playerID === self.playerID)
-                {
-                    playerAlreadyAdded = true;
-                    self.playerIndex = i;
-                    console.log("playerAlreadyAdded");
-                }
-            }
-
-            if(!playerAlreadyAdded)
-            {
-
-                if (self.matchdata.players.length < 3)
-                {
-                    console.log("Added player1")
-                    self.matchdata.players.push(
-                        {
-                            playerID: self.playerID,
-                            playerName: self.playerName,
-                            playerPhoto: self.playerPhoto
-                        }
-                    );
-                    console.log("Added player2")
-                    self.playerIndex = self.matchdata.players.length - 1 ;
-                    console.log("Plyaer index1: "+self.playerIndex);
-                    console.log("Added player3")
-                    
-                }
-                else
-                {
-                    self.playerIndex = -1 ;
-                }
-                console.log(JSON.stringify(self.matchdata));
-            }*/
             
             self.socket.emit("playerLoggedIn",player);
         });
 
-        this.socket.on('playerAdded', function (players) {
+        this.socket.on('playerAdded', function (players, tabledCards, dealCards, playTurn) {
 
-            console.log("On Player Added")
-
-            self.matchdata.players = players;
-
-            for ( var i = 0; i < self.matchdata.players.length; i++ )
+            console.log("On Player Added");
+            if(!self.playStarted)
             {
-                if(self.matchdata.players[i].playerID === self.playerID )
+                console.log("play not started");
+
+                self.matchdata.players = players;
+
+                for ( var i = 0; i < self.matchdata.players.length; i++ )
                 {
-                    self.playerIndex = i;
-                    console.log("player Index: "+ self.playerIndex );
+                    if(self.matchdata.players[i].playerID === self.playerID )
+                    {
+                        self.playerIndex = i;
+                        self.isSpectator = false;
+                        console.log("player Index: "+ self.playerIndex );
+                    }
+                }
+
+                if(!self.isSpectator)
+                {
+                    self.rightPlayerIndex = (self.playerIndex +1)%4;
+                    self.frontPlayerIndex = (self.playerIndex +2)%4;
+                    self.leftPlayerIndex  = (self.playerIndex +3)%4;
+                }
+
+                console.log(" Player Index: "+ self.playerIndex);
+
+                for ( var i = 0; i < self.matchdata.players.length; i++ )
+                {
+                    if(i === 0 && self.isSpectator )
+                    {
+                        self.load.image('playerCurrent', self.matchdata.players[i].playerPhoto);
+                        self.load.once('filecomplete-image-playerCurrent', self.addCurrentPlayerPhoto, self);
+                        self.load.start();
+                        self.addPlayerName(360, 535, self.matchdata.players[i].playerName);
+                    }
+                    else if(i === self.playerIndex)
+                    {
+                        self.load.image('playerCurrent', self.matchdata.players[i].playerPhoto);
+                        self.load.once('filecomplete-image-playerCurrent', self.addCurrentPlayerPhoto, self);
+                        self.load.start();
+                        self.addPlayerName(360, 535, self.matchdata.players[i].playerName);
+                    }
+                    else if( i === self.rightPlayerIndex )
+                    {
+                        self.load.image('playerRight', self.matchdata.players[i].playerPhoto);
+                        self.load.once('filecomplete-image-playerRight', self.addRightPlayerPhoto, self);
+                        self.load.start();
+                    }
+                    else if( i === self.frontPlayerIndex )
+                    {
+                        self.load.image('playerFront', self.matchdata.players[i].playerPhoto);
+                        self.load.once('filecomplete-image-playerFront', self.addFrontPlayerPhoto, self);
+                        self.load.start();
+                    }
+                    else if( i === self.leftPlayerIndex )
+                    {
+                        self.load.image('playerLeft', self.matchdata.players[i].playerPhoto);
+                        self.load.once('filecomplete-image-playerLeft', self.addLeftPlayerPhoto, self);
+                        self.load.start();
+                    }
+                }
+
+                console.log("playerAdded");
+                console.log(JSON.stringify(players));
+
+                if( players.length === 4 )
+                {
+                    self.playStarted = true;
+
+                    if( (dealCards.length > 0 )|| (tabledCards.length > 0 ))
+                    {
+                        if( !self.isSpectator && dealCards.length > 0  )
+                        {
+                            self.dealer.dealCards(dealCards);
+                        }
+
+                        for( var i = 0; i < tabledCards.length; i++ )
+                        {
+                            self.renderTabledCard( tabledCards[i].card, tabledCards[i].playerIndex );
+                            console.log("Rendered Tabled Cards");
+                        }
+                        
+                    }
+                    else
+                    {
+                        console.log("Play Started");
+                        self.socket.emit("startPlay");
+                    }
                 }
             }
-
-            var rightPlayerIndex = (self.playerIndex +1)%4;
-            var frontPlayerIndex = (self.playerIndex +2)%4;
-            var leftPlayerIndex = (self.playerIndex +3)%4;
-
-            console.log(" Player Index: "+ self.playerIndex);
-
-            for ( var i = 0; i < self.matchdata.players.length; i++ )
-            {
-                if(i === self.playerIndex)
-                {
-                    self.load.image('playerCurrent', self.matchdata.players[i].playerPhoto);
-                    self.load.once('filecomplete-image-playerCurrent', self.addCurrentPlayerPhoto, self);
-                    self.load.start();
-                }
-                else if( i === rightPlayerIndex )
-                {
-                    self.load.image('playerRight', self.matchdata.players[i].playerPhoto);
-                    self.load.once('filecomplete-image-playerRight', self.addRightPlayerPhoto, self);
-                    self.load.start();
-                }
-                else if( i === frontPlayerIndex )
-                {
-                    self.load.image('playerFront', self.matchdata.players[i].playerPhoto);
-                    self.load.once('filecomplete-image-playerFront', self.addFrontPlayerPhoto, self);
-                    self.load.start();
-                }
-                else if( i === leftPlayerIndex )
-                {
-                    self.load.image('playerLeft', self.matchdata.players[i].playerPhoto);
-                    self.load.once('filecomplete-image-playerLeft', self.addLeftPlayerPhoto, self);
-                    self.load.start();
-                }
-            }
-
-            console.log("playerAdded");
-            console.log(JSON.stringify(players));
         })
 
         this.socket.on('isPlayerA', function () {
             self.isPlayerA = true;
         })
 
-        this.socket.on('dealCards', function () {
-            self.dealer.dealCards();
-            self.dealText.disableInteractive();
-        })
-
-        this.socket.on('cardPlayed', function (gameObject, isPlayerA) {
-            if (isPlayerA !== self.isPlayerA) {
-                let sprite = gameObject.textureKey;
-                self.opponentCards.shift().destroy();
-                self.dropZone.data.values.cards++;
-                let card = new Card(self);
-                card.render((((self.dropZone.x - 350*(window.innerWidth/1280)) + (self.dropZone.data.values.cards * 50*(window.innerWidth/1280)))), (self.dropZone.y), sprite).disableInteractive();
+        this.socket.on('dealCards', function (deal, playTurn) {
+            if(!self.isSpectator)
+            {
+                self.dealer.dealCards(deal);
+                self.dealText.disableInteractive();
+                console.log("Deal length: "+self.dealCards.length);
             }
         })
 
-        this.dealText = this.add.text(75*(window.innerWidth/1280), 350*(window.innerHeight/780), ['DEAL CARDS']).setFontSize(18*(window.innerWidth/1280)).setFontFamily('Trebuchet MS').setColor('#00ffff').setInteractive();
-        this.inviteText = this.add.text(75*(window.innerWidth/1280), 400*(window.innerHeight/780), ['Invite Friends']).setFontSize(18*(window.innerWidth/1280)).setFontFamily('Trebuchet MS').setColor('#00ffff').setInteractive();
+        this.socket.on('cardPlayed', function (gameObject, playerIndex) {
+
+            console.log("played card by (indx):"+ playerIndex )
+            self.renderTabledCard( gameObject, playerIndex );
+           /* let sprite = gameObject.textureKey;
+            let card = new Card(self);
+            if ( (playerIndex === 0) && self.isSpectator ) {
+                //self.opponentCards.shift().destroy();
+                self.dropZone.data.values.cards.push(gameObject);
+                card.render((self.dropZone.x), (self.dropZone.y + self.dropZone.input.hitArea.height/4), sprite).disableInteractive();
+            }
+            else if (playerIndex === self.rightPlayerIndex) {
+                //self.opponentCards.shift().destroy();
+                self.dropZone.data.values.cards.push(gameObject);
+                card.render((self.dropZone.x + self.dropZone.input.hitArea.width/4 ), (self.dropZone.y), sprite).disableInteractive();
+            }
+            else if (playerIndex === self.frontPlayerIndex)
+            {
+                self.dropZone.data.values.cards.push(gameObject);
+                card.render((self.dropZone.x), (self.dropZone.y - self.dropZone.input.hitArea.height/4), sprite).disableInteractive();
+            }
+            else if (playerIndex === self.leftPlayerIndex)
+            {
+                self.dropZone.data.values.cards.push(gameObject);
+                card.render((self.dropZone.x - self.dropZone.input.hitArea.width/4), (self.dropZone.y), sprite).disableInteractive();
+            }
+
+            if (self.dropZone.data.values.cards.length === 4 )
+            {
+                //wait few seconds and trigger event to finalize the round
+            }*/
+
+        })
+
+        this.dealText = this.add.text(75*self.widthScale, 350*this.heightScale, ['DEAL CARDS']).setFontSize(18*self.widthScale).setFontFamily('Trebuchet MS').setColor('#00ffff').setInteractive();
+        this.inviteText = this.add.text(75*self.widthScale, 400*this.heightScale, ['Invite Friends']).setFontSize(18*self.widthScale).setFontFamily('Trebuchet MS').setColor('#00ffff').setInteractive();
 
 
         this.dealText.on('pointerdown', function () {
-            self.socket.emit("dealCards");
+            //self.socket.emit("dealCards");
         })
 
         this.dealText.on('pointerover', function () {
@@ -240,10 +325,10 @@ class Game extends Phaser.Scene {
                     action: 'CUSTOM',
                     cta: "I'm In ",
                     text: {
-                    default: player + ' has invited you to play ThreeNoughtFour',
+                    default: player + ' has invited you to play Omi',
                     },
                     template: 'play_turn',
-                    data: { players: self.matchdata.players },
+                    data: { tableID: self.tableID },
                     strategy: 'IMMEDIATE',
                     notification: 'NO_PUSH'
                 };
@@ -274,7 +359,7 @@ class Game extends Phaser.Scene {
 
         this.input.on('dragstart', function (pointer, gameObject) {
             gameObject.setTint(0xff69b4);
-            self.children.bringToTop(gameObject);
+            //self.children.bringToTop(gameObject);
         })
 
         this.input.on('dragend', function (pointer, gameObject, dropped) {
@@ -286,11 +371,16 @@ class Game extends Phaser.Scene {
         })
 
         this.input.on('drop', function (pointer, gameObject, dropZone) {
-            dropZone.data.values.cards++;
-            gameObject.x = (dropZone.x - 350*(window.innerWidth/1280)) + (dropZone.data.values.cards * 50*(window.innerWidth/1280));
-            gameObject.y = dropZone.y;
+            /*dropZone.data.values.cards.push(gameObject);
+            console.log("gameObject: "+ dropZone.data.values)
+            gameObject.x = dropZone.x;
+            gameObject.y = dropZone.y + dropZone.input.hitArea.height/4 ;
             gameObject.disableInteractive();
-            self.socket.emit('cardPlayed', gameObject, self.isPlayerA);
+            self.children.bringToTop(gameObject);
+            //console.log("game obj value: "+gameObject.extra.value)*/
+            self.socket.emit('cardPlayed', gameObject, self.playerIndex);
+            gameObject.destroy(); // Because dragend event hold the card at where it was last placed
+
         })
     }
 
