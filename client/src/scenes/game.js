@@ -93,20 +93,40 @@ class Game extends Phaser.Scene {
     {
         if(!this.isSpectator)
         {
+            console.log("updateDealCardInterativity");
+            console.log("play turn: "+ this.playTurn);
+            console.log("player index: "+ this.playerIndex);
             if(this.playTurn === this.playerIndex )
             {
-                enableDealCards();
+                this.enableDealCards();
             }
             else
             {
-                disableDealCards();
+                this.disableDealCards();
             }
         }
     }
 
     updateScoreBoard()
     {
-        
+        if(!this.isSpectator)
+        {
+            var mySubScore = this.subScores[this.playerIndex] + this.subScores[(this.playerIndex+2)%4];
+            var opoSubScoreScore = this.subScores[(this.playerIndex+1)%4] + this.subScores[(this.playerIndex+3)%4]
+
+            this.myScore.setText([
+                'You:  ' ,
+                '  Match Points: '+ this.mainScores[this.playerIndex],
+                '  Round Points: '+ this.subScores[this.playerIndex], 
+            ]);
+
+            this.oponentScore.setText([
+                'Opponent:  ',
+                '  Match Points: '+ this.mainScores[(this.playerIndex+1)%4],
+                '  Round Points: '+ this.subScores[(this.playerIndex+1)%4], 
+            ]);
+        }
+
     }
 
     subRoundFinalize()
@@ -123,17 +143,26 @@ class Game extends Phaser.Scene {
         let entryPointData = FBInstant.getEntryPointData();
         console.log(JSON.stringify(entryPointData));
 
-        this.add.text(0, 0).setText([
-            'Player ID: ' + this.facebook.playerID,
-            'Player Name: ' + this.facebook.playerName,
-            'Width: ' + window.innerWidth,
-            'Height: ' + window.innerHeight,
-        ]);
+        this.add.text(110*this.widthScale, 10*this.widthScale).setText([
+            'Omi' 
+        ]).setFontSize(50);
+
+        this.oponentScore = this.add.text(200, 285).setText([
+            'Opponent:  ',
+            '  Match Points: '+ 0 ,
+            '  Round Points: '+ 0, 
+        ]).setFontSize(10);
+
+        this.myScore = this.add.text(30, 285).setText([
+            'You:  ' ,
+            '  Match Points: '+ 0 ,
+            '  Round Points: '+ 0, 
+        ]).setFontSize(10);
 
         this.isPlayerA  = false;
         this.dealCards  = [];
-        this.subScores  = [];
-        this.mainScores = [];
+        this.subScores  = [0,0,0,0];
+        this.mainScores = [0,0,0,0];
 
         this.playerID = this.facebook.playerID;
         this.playerName = this.facebook.playerName;
@@ -200,7 +229,7 @@ class Game extends Phaser.Scene {
             self.RoundNumber = 1+ (self.RoundNumber)%8;
 
             self.playTurn = playTurn;
-            updateDealCardInterativity();
+            self.updateDealCardInterativity();
             
         });
 
@@ -212,11 +241,11 @@ class Game extends Phaser.Scene {
             self.subRoundFinalize();
             self.RoundNumber = 1;
             self.playTurn = playTurn;
-            updateDealCardInterativity()
 
             if( !self.isSpectator && dealCards.length > 0  )
             {
                 self.dealer.dealCards(dealCards[self.playerIndex]);
+                self.updateDealCardInterativity()
             }
         });
 
@@ -235,7 +264,6 @@ class Game extends Phaser.Scene {
 
             console.log("On Player Added");
             self.playTurn = playTurn;
-            updateDealCardInterativity()
 
             if(!self.playStarted)
             {
@@ -311,6 +339,7 @@ class Game extends Phaser.Scene {
                         if( !self.isSpectator && dealCards.length > 0  )
                         {
                             self.dealer.dealCards(dealCards[self.playerIndex]);
+                            self.updateDealCardInterativity();
                         }
 
                         console.log("Rendering tabled cards");
@@ -327,6 +356,7 @@ class Game extends Phaser.Scene {
                     }
                 }
             }
+            
         })
 
         this.socket.on('isPlayerA', function () {
@@ -338,19 +368,22 @@ class Game extends Phaser.Scene {
             self.inviteText.disableInteractive();
             self.inviteText.setAlpha(0);
             self.playTurn = playTurn;
-            updateDealCardInterativity()
 
             if(!self.isSpectator)
             {
                 self.dealer.dealCards(dealCards[self.playerIndex]);
+                self.updateDealCardInterativity();
                 console.log("Deal length on dealCards: "+dealCards.length);
             }
         })
 
-        this.socket.on('cardPlayed', function (gameObject, playerIndex) {
+        this.socket.on('cardPlayed', function (gameObject, playerIndex, playTurn) {
 
             console.log("Rendering tabled card by :"+ playerIndex );
             self.renderTabledCard( gameObject, playerIndex );
+
+            self.playTurn = playTurn;
+            self.updateDealCardInterativity();
         })
 
         this.hQuitText = this.add.text(100*self.widthScale, 500*this.heightScale, ['HARD QUIT']).setFontSize(18*self.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
