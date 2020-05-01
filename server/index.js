@@ -160,6 +160,7 @@ var calculateScores = function()
     }
 
     subScores[maxCardIndex]++;
+    subScores[(maxCardIndex+2)%4]++;
 
     if(subRoundNumber === 8)
     {
@@ -222,7 +223,7 @@ io.on('connection', function (socket) {
 
         console.log("Played Card: " + cardValue);
         tabledTheCard(gameObject, cardValue, playerIndex);
-        io.emit('cardPlayed', gameObject, playerIndex);
+        io.emit('cardPlayed', gameObject, playerIndex, playTurn);
     });
 
     socket.on('startPlay', function () {
