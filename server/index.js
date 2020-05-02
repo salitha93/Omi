@@ -313,7 +313,8 @@ io.on('connection', function (socket) {
             }
             else if( mainRoundEnd )
             {
-                dealCards = getDeal()
+                dealCards = getDeal();
+                trump = "gray_back";
                 mainRoundEnd = false;
                 io.emit('mainRoundEnd', playTurn, mainScores, dealCards);
             }
@@ -349,7 +350,7 @@ io.on('connection', function (socket) {
                 players.push(player);
             }
         }
-        io.emit('playerAdded', players, tabledCards, dealCards, playTurn, trump );
+        io.emit('playerAdded', players, tabledCards, dealCards, playTurn, trump, playStarted );
     });
 
     socket.on('disconnect', function () {
