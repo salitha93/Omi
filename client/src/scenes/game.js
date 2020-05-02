@@ -59,6 +59,7 @@ class Game extends Phaser.Scene {
             if (this.dropZone.data.values.cards.length === 1 )
             {
                 this.tableSuit = sprite.substr(1,1);
+                console.log("tableSuit: "+ this.tableSuit)
             }
             else if (this.dropZone.data.values.cards.length === 4 )
             {
@@ -125,7 +126,7 @@ class Game extends Phaser.Scene {
                     if(this.playTurn === this.playerIndex )
                     {
                         console.log("deal card: "+ this.dealCards[i].extra.value)
-                        console.log("deal card: "+ this.tableSuit)
+                        console.log("table suit: "+ this.tableSuit)
                         if (this.dropZone.data.values.cards.length === 0)
                         {
                             this.dealCards[i].setInteractive();
@@ -229,27 +230,6 @@ class Game extends Phaser.Scene {
         let entryPointData = FBInstant.getEntryPointData();
         console.log(JSON.stringify(entryPointData));
 
-        this.add.text(110*this.widthScale, 10*this.widthScale).setText([
-            'Omi' 
-        ]).setFontSize(50);
-
-        this.oponentScore = this.add.text(200*this.widthScale, 100*this.widthScale).setText([
-            'Opponent:  ',
-            '  Match Points: '+ 0 ,
-            '  Round Points: '+ 0, 
-        ]).setFontSize(10);
-
-        this.myScore = this.add.text(20*this.widthScale, 100*this.widthScale).setText([
-            'You:  ' ,
-            '  Match Points: '+ 0 ,
-            '  Round Points: '+ 0, 
-        ]).setFontSize(10);
-
-        this.add.text(0*this.widthScale, 0*this.widthScale).setText([
-            '  W: '+ window.innerWidth ,
-            '  H: '+ window.innerHeight, 
-        ]).setFontSize(10);
-
         this.isPlayerA  = false;
         this.dealCards  = [];
         this.trumpCards = []; // Use to destroy the cards of trump selection views
@@ -281,14 +261,42 @@ class Game extends Phaser.Scene {
 
         this.dealer = new Dealer(this);
 
-        let self = this;
+        this.add.text(110*this.widthScale, 10*this.heightScale).setText([
+            'Omi' 
+        ]).setFontSize(50).setFontFamily('Trebuchet MS');
+
+        this.oponentScore = this.add.text(190*this.widthScale, 80*this.heightScale).setText([
+            'Opponent:  ',
+            '  Match Points: '+ 0 ,
+            '  Round Points: '+ 0, 
+        ]).setFontSize(12);
+
+        this.myScore = this.add.text(10*this.widthScale, 80*this.heightScale).setText([
+            'You:  ' ,
+            '  Match Points: '+ 0 ,
+            '  Round Points: '+ 0, 
+        ]).setFontSize(12);
+
+        this.add.text(0*this.widthScale, 0*this.widthScale).setText([
+            '  W: '+ window.innerWidth ,
+            '  H: '+ window.innerHeight, 
+        ]).setFontSize(10);
+
+        this.hQuitText = this.add.text(100*this.widthScale, 500*this.heightScale, ['END MATCH']).setFontSize(18*this.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
+        
+        this.quitText = this.add.text(125*this.widthScale, 475*this.heightScale, ['QUIT']).setFontSize(18*this.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
+        
+        this.inviteText = this.add.text(120*this.widthScale, 450*this.heightScale, ['INVITE']).setFontSize(18*this.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
+
+        this.roundTrump = this.add.image(150*this.widthScale, 80*this.heightScale).setScale(0.030*this.widthScale, 0.030*this.heightScale).disableInteractive();
+        this.roundTrump.setTexture('gray_back');
 
         if (entryPointData)
         {
            this.tableID = entryPointData.tableID;
         }
 
-        console.log("tableID: " + this.tableID);
+        let self = this;
 
         this.socket = io(this.socketURL);
 
@@ -342,7 +350,8 @@ class Game extends Phaser.Scene {
             console.log("mainScores: "+mainScores);
 
             self.mainScores = mainScores;
-            self.subScores  = [0, 0, 0, 0] 
+            self.subScores  = [0, 0, 0, 0];
+            self.roundTrump.setTexture('gray_back');
             self.subRoundFinalize();
             self.RoundNumber = 1;
             self.playTurn = playTurn;
@@ -369,7 +378,7 @@ class Game extends Phaser.Scene {
         });
         
 
-        this.socket.on('playerAdded', function (players, tabledCards, dealCards, playTurn, trump) {
+        this.socket.on('playerAdded', function (players, tabledCards, dealCards, playTurn, trump, playStarted) {
 
             console.log("On Player Added");
             self.playTurn = playTurn;
@@ -442,22 +451,40 @@ class Game extends Phaser.Scene {
                 if( self.matchdata.players.length === 4 ) 
                 {
                     self.playStarted = true;
+                    self.inviteText.disableInteractive();
+                    self.inviteText.setAlpha(0);
 
-                    if( (dealCards.length > 0 )|| (tabledCards.length > 0 ))
+                    if(self.isSpectator)
+                    {
+                        self.hQuitText.disableInteractive();
+                        self.hQuitText.setAlpha(0);
+                    }
+
+                    if(playStarted === true && (trump === "gray_back"))
+                    {
+                        console.log("Selecting trump: "+self.playTurn);
+
+                        if( !self.isSpectator && (self.playTurn === self.playerIndex))
+                        {
+                            //self.dealer.dealCards(dealCards[self.playerIndex]);
+                            self.showTrumpSelectionView(dealCards[self.playerIndex]);
+                        }
+                    }
+                    else if( (dealCards.length > 0 )|| (tabledCards.length > 0 ))
                     {
                         self.updateRoundTrump(trump);
-                        if( !self.isSpectator && dealCards.length > 0  )
-                        {
-                            self.dealer.dealCards(dealCards[self.playerIndex]);
-                            self.updateDealCardInterativity();
-                        }
 
                         console.log("Rendering tabled cards");
                         for( var i = 0; i < tabledCards.length; i++ )
                         {
                             self.renderTabledCard( tabledCards[i].card, tabledCards[i].playerIndex );
                         }
-                        
+
+                        if( !self.isSpectator && dealCards.length > 0  )
+                        {
+                            self.dealer.dealCards(dealCards[self.playerIndex]);
+                            self.updateDealCardInterativity();
+                        }
                     }
                     else
                     {
@@ -497,15 +524,6 @@ class Game extends Phaser.Scene {
             self.playTurn = playTurn;
             self.updateDealCardInterativity();
         })
-
-        this.hQuitText = this.add.text(100*self.widthScale, 500*this.heightScale, ['HARD QUIT']).setFontSize(18*self.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
-        
-        this.quitText = this.add.text(125*self.widthScale, 475*this.heightScale, ['QUIT']).setFontSize(18*self.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
-        
-        this.inviteText = this.add.text(120*self.widthScale, 450*this.heightScale, ['INVITE']).setFontSize(18*self.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
-
-        this.roundTrump = this.add.image(310*self.widthScale, 20*this.heightScale).setScale(0.030*this.widthScale, 0.030*this.heightScale).disableInteractive();
-        this.roundTrump.setTexture('gray_back');
 
         //this.showTrumpSelectionView();
 
