@@ -10,7 +10,7 @@ let tabledCardValues = ["","","",""];
 let dealCards = [];
 let subScores = [0,0,0,0];
 let mainScores = [0,0,0,0];
-let trump = "X";
+let trump = "gray_back";
 
 let playStarted = false;
 let gameEnd = false;
@@ -19,10 +19,11 @@ let subRoundEnd = false;
 
 let maxCardIndex = -1
 let playTurn = 0;
+let lastPlayTurn = 0;
 let roundStartPlayTurn = 0;
 let subRoundNumber = 1;
 let orderedDeck = ["7C","7D","7H","7S","8C","8D","8H","8S",
-                   "9C","9D","9H","9S","10C","10D","10H","10S",
+                   "9C","9D","9H","9S","IC","ID","IH","IS",
                    "JC","JD","JH","JS","QC","QD","QH","QS",
                    "KC","KD","KH","KS","AC","AD","AH","AS"];
 
@@ -36,13 +37,16 @@ var resetTable = function()
             dealCards = [];
             subScores = [0,0,0,0];
             mainScores = [0,0,0,0];
-            trump = "X";
+            trump = "gray_back";
             playStarted = false;
-            playTurn = 0;
             gameEnd = false;
             mainRoundEnd = false;
             subRoundEnd = false;
+
+            maxCardIndex = -1
             roundStartPlayTurn = 0;
+            lastPlayTurn = 0;
+            playTurn = 0;
             subRoundNumber = 1;
 }
 
@@ -88,7 +92,7 @@ var tabledTheCard = function( gameObject, cardValue, playerIndex )
     });
 
     removeCardFromDeal(cardValue);
-
+    lastPlayTurn = playTurn;
     playTurn = (playTurn+1)%4;
 }
 
@@ -108,30 +112,49 @@ var getDeal = function()
 
 var calculateScores = function()
 {
-    console.log("tableSuit card owner"+(playTurn+1)%4)
-    console.log("tableSuit : "+tabledCardValues[(playTurn+1)%4].substr(1, 1))
-    var tableSuit = tabledCardValues[(playTurn+1)%4].substr(1, 1);
+    console.log("Last Play Turn: "+lastPlayTurn);
+    console.log("tableSuit card owner"+(lastPlayTurn+1)%4)
+    console.log("tableSuit : "+tabledCardValues[(lastPlayTurn+1)%4].substr(1, 1))
+    var tableSuit = tabledCardValues[(lastPlayTurn+1)%4].substr(1, 1);
     maxCardIndex = -1;
     var trumpAvailable = false;
 
     for(var i = 0; i < tabledCardValues.length; i++)
     {
-        console.log("tablete cards values length: "+tabledCardValues.length  )
-        console.log("tablete cards values length: "+i  )
+        console.log("Comparison1 trump:" +trump);
+        console.log("Comparison1 card:" +trump);
         if(tabledCardValues[i].search(trump) !== -1)
         {
+            console.log("Comparison1 trump available:");
             trumpAvailable = true;
-            if( maxCardIndex != -1 )
+            if( maxCardIndex !== -1 )
             {
-                if( tabledCardValues[i].charCodeAt(1) === 65 )
+                console.log("Comparison1:" +tabledCardValues[i].charCodeAt(0)+ "==="+65);
+                console.log("Comparison2:" +tabledCardValues[maxCardIndex].charCodeAt(0)+ "<"+tabledCardValues[i].charCodeAt(0));  
+                if( tabledCardValues[maxCardIndex].search(trump) === -1 )
                 {
                     maxCardIndex = i;
                 }
-                else if( tabledCardValues[maxCardIndex].charCodeAt(1) < tabledCardValues[i].charCodeAt(1))
+                else if( tabledCardValues[maxCardIndex].charCodeAt(0) === 65 )
+                {
+                    continue;
+                }
+                else if( tabledCardValues[i].charCodeAt(0) === 65 )
                 {
                     maxCardIndex = i;
                 }
-                
+                else if( tabledCardValues[maxCardIndex].charCodeAt(0) === 75 )
+                {
+                    continue;
+                }
+                else if( tabledCardValues[i].charCodeAt(0) === 75 )
+                {
+                    maxCardIndex = i;
+                }
+                else if( tabledCardValues[maxCardIndex].charCodeAt(0) < tabledCardValues[i].charCodeAt(0))
+                {
+                    maxCardIndex = i;
+                }
             }
             else
             {
@@ -140,13 +163,30 @@ var calculateScores = function()
         }
         else if( !trumpAvailable && (tabledCardValues[i].search(tableSuit) !== -1))
         {
-            if( maxCardIndex != -1 )
+           // console.log("Max card index in loop :"+maxCardIndex);
+            if( maxCardIndex !== -1 )
             {
-                if( tabledCardValues[i].charCodeAt(1) === 65 )
+                //console.log("tabledCards: "+tabledCardValues)
+               // console.log("Looping card: "+i +": "+tabledCardValues[i])
+               // console.log("Comparison1:" +tabledCardValues[i].charCodeAt(0)+ "==="+65);
+               // console.log("Comparison2:" +tabledCardValues[maxCardIndex].charCodeAt(0)+ "<"+tabledCardValues[i].charCodeAt(0));  
+                if( tabledCardValues[maxCardIndex].charCodeAt(0) === 65 )
+                {
+                    continue;
+                }
+                else if( tabledCardValues[i].charCodeAt(0) === 65 )
                 {
                     maxCardIndex = i;
                 }
-                else if( tabledCardValues[maxCardIndex].charCodeAt(1) < tabledCardValues[i].charCodeAt(1))
+                else if( tabledCardValues[maxCardIndex].charCodeAt(0) === 75 )
+                {
+                    continue;
+                }
+                else if( tabledCardValues[i].charCodeAt(0) === 75 )
+                {
+                    maxCardIndex = i;
+                }
+                else if( tabledCardValues[maxCardIndex].charCodeAt(0) < tabledCardValues[i].charCodeAt(0))
                 {
                     maxCardIndex = i;
                 }
@@ -159,8 +199,12 @@ var calculateScores = function()
         }
     }
 
+    console.log("Final Max card index :"+maxCardIndex);
+
     subScores[maxCardIndex]++;
     subScores[(maxCardIndex+2)%4]++;
+
+    console.log("subScores :"+subScores);
 
     if(subRoundNumber === 8)
     {
@@ -194,7 +238,9 @@ var processSubRound = function()
     else if( subRoundNumber === 8 )
     {
         mainRoundEnd = true;
-        roundStartPlayTurn = (roundStartPlayTurn++)%4;
+        console.log("roundStartPlayTurn1: "+roundStartPlayTurn);
+        roundStartPlayTurn = (roundStartPlayTurn+1)%4;
+        console.log("roundStartPlayTurn2: "+roundStartPlayTurn);
         playTurn = roundStartPlayTurn;
     }
     else
@@ -227,12 +273,14 @@ io.on('connection', function (socket) {
     });
 
     socket.on('startPlay', function () {
-        dealCards = getDeal();
+        
         if(!playStarted)
         {
+            dealCards = getDeal();
             playStarted =true;
             console.log("Play Started")
-            io.emit('dealCards', dealCards, playTurn);
+            io.emit('selectTrump', playTurn, dealCards);
+            //io.emit('dealCards', dealCards, playTurn);
         }
     });
 
@@ -241,11 +289,21 @@ io.on('connection', function (socket) {
         io.emit('quite');
     });
 
+    socket.on('trumpSelected', function (roundTrump) {
+        //dealCards = getDeal();
+
+        trump = roundTrump;
+        console.log("Round trump selected: "+ trump);
+        io.emit('dealCards', dealCards, playTurn, trump);
+    });
+    
+
     socket.on('subRoundEnd', function (sRoundNumber) {
-        console.log("sRoundNumber: "+sRoundNumber);
-        console.log("subRoundNumber: "+subRoundNumber);
+       // console.log("sRoundNumber: "+sRoundNumber);
+       // console.log("subRoundNumber: "+subRoundNumber);
         if(sRoundNumber === subRoundNumber)
         {
+            tabledCards = [];
             processSubRound();
 
             if( subRoundEnd )
@@ -255,7 +313,7 @@ io.on('connection', function (socket) {
             }
             else if( mainRoundEnd )
             {
-                dealCards = getDeal();
+                dealCards = getDeal()
                 mainRoundEnd = false;
                 io.emit('mainRoundEnd', playTurn, mainScores, dealCards);
             }
@@ -266,11 +324,11 @@ io.on('connection', function (socket) {
             }
         }
     });
-
+/*
     socket.on('dealCards', function () {
         dealCards = getDeal();
         io.emit('dealCards', dealCards, playTurn);
-    });
+    });*/
 
     socket.on('playerLoggedIn', function (player) {
         console.log("A player Logged in: "+ player.playerName);
@@ -291,7 +349,7 @@ io.on('connection', function (socket) {
                 players.push(player);
             }
         }
-        io.emit('playerAdded', players, tabledCards, dealCards, playTurn);
+        io.emit('playerAdded', players, tabledCards, dealCards, playTurn, trump );
     });
 
     socket.on('disconnect', function () {
