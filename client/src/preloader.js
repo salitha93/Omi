@@ -29,10 +29,10 @@ class Preloader extends Phaser.Scene {
         this.load.image('9D', 'src/assets/9D.png');
         this.load.image('9H', 'src/assets/9H.png');
         this.load.image('9S', 'src/assets/9S.png');
-        this.load.image('10C', 'src/assets/10C.png');
-        this.load.image('10D', 'src/assets/10D.png');
-        this.load.image('10H', 'src/assets/10H.png');
-        this.load.image('10S', 'src/assets/10S.png');
+        this.load.image('IC', 'src/assets/10C.png');
+        this.load.image('ID', 'src/assets/10D.png');
+        this.load.image('IH', 'src/assets/10H.png');
+        this.load.image('IS', 'src/assets/10S.png');
         this.load.image('JC', 'src/assets/JC.png');
         this.load.image('JD', 'src/assets/JD.png');
         this.load.image('JH', 'src/assets/JH.png');
@@ -49,6 +49,11 @@ class Preloader extends Phaser.Scene {
         this.load.image('AD', 'src/assets/AD.png');
         this.load.image('AH', 'src/assets/AH.png');
         this.load.image('AS', 'src/assets/AS.png');
+        this.load.image('gray_back', 'src/assets/gray_back.png');
+        this.load.image('C', 'src/assets/C.png');
+        this.load.image('D', 'src/assets/D.png');
+        this.load.image('H', 'src/assets/H.png');
+        this.load.image('S', 'src/assets/S.png');
     }
 
     startGame ()
