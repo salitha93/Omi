@@ -54,6 +54,7 @@ class Preloader extends Phaser.Scene {
         this.load.image('D', 'src/assets/D.png');
         this.load.image('H', 'src/assets/H.png');
         this.load.image('S', 'src/assets/S.png');
+        this.load.image('turn', 'src/assets/turn.png');
     }
 
     startGame ()

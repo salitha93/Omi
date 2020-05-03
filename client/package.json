@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack --config webpack/prod.js ",
     "start": "webpack-dev-server --config webpack/base.js --open",
-    "start-fb": "http-server --ssl -c-1 -p 8082 -a 127.0.0.1"
+    "start-fb": "http-server --ssl -c-1 -p 8080 -a 127.0.0.1"
   },
   "repository": {
     "type": "git",
