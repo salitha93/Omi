@@ -5,8 +5,8 @@ class Game extends Phaser.Scene {
         });
 
         this.profilePicScale = 0.1;
-        this.widthScale  = window.innerWidth/335;
-        this.heightScale = window.innerHeight/524;
+        this.widthScale  = window.innerWidth/335; //270
+        this.heightScale = window.innerHeight/524; //480
         //this.socketURL = 'http://localhost:3021';
         this.socketURL = 'https://server-omi.herokuapp.com';
     }
@@ -19,16 +19,16 @@ class Game extends Phaser.Scene {
 
     addCurrentPlayerPhoto (key)
     {
-        this.add.image(150*this.widthScale, 380*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
+        this.add.image(160*this.widthScale, 380*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
     }
     
     addRightPlayerPhoto (key)
     {
-        this.add.image(285*this.widthScale, 260*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
+        this.add.image(295*this.widthScale, 260*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
     }
     addFrontPlayerPhoto (key)
     {
-        this.add.image(150*this.widthScale, 120*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
+        this.add.image(160*this.widthScale, 120*this.heightScale, key).setScale(this.profilePicScale*this.widthScale).setInteractive();
     }
     addLeftPlayerPhoto (key)
     {
@@ -41,7 +41,9 @@ class Game extends Phaser.Scene {
 
     renderTabledCard( gameObject, playerIndex )
     {
-        let sprite = gameObject.textureKey;
+        return new Promise(function(resolve)
+        {
+            let sprite = gameObject.textureKey;
             let card = new Card(this);
 
             if ( (playerIndex === 0) && this.isSpectator ) {
@@ -49,10 +51,11 @@ class Game extends Phaser.Scene {
             }
             else if(playerIndex === this.playerIndex)
             {
+                
                 this.dropZone.data.values.cards.push(card.render((this.dropZone.x), (this.dropZone.y + this.dropZone.input.hitArea.height/4), sprite).disableInteractive());
             }
             else if (playerIndex === this.rightPlayerIndex) {
-               this.dropZone.data.values.cards.push(card.render((this.dropZone.x + this.dropZone.input.hitArea.width/4 ), (this.dropZone.y), sprite).disableInteractive());
+               this.dropZone.data.values.cards.push(card.render((this.dropZone.x + this.dropZone.input.hitArea.width/4 + 10 ), (this.dropZone.y), sprite).disableInteractive());
             }
             else if (playerIndex === this.frontPlayerIndex)
             {
@@ -60,7 +63,51 @@ class Game extends Phaser.Scene {
             }
             else if (playerIndex === this.leftPlayerIndex)
             {
-                this.dropZone.data.values.cards.push(card.render((this.dropZone.x - this.dropZone.input.hitArea.width/4), (this.dropZone.y), sprite).disableInteractive());
+                this.dropZone.data.values.cards.push(card.render((this.dropZone.x - this.dropZone.input.hitArea.width/4 - 10), (this.dropZone.y), sprite).disableInteractive());
+            }
+
+            if (this.dropZone.data.values.cards.length === 1 )
+            {
+                this.tableSuit = sprite.substr(1,1);
+                console.log("tableSuit: "+ this.tableSuit)
+                resolve(false);
+            }
+            else if (this.dropZone.data.values.cards.length === 4 )
+            {
+                console.log("Sub Round: "+this.RoundNumber+" End");
+                this.socket.emit("subRoundEnd", this.RoundNumber);
+                resolve(true);
+            }
+            else
+            {
+                resolve(false);
+            }
+
+            
+
+        }.bind(this));
+
+        /*let sprite = gameObject.textureKey;
+            let card = new Card(this);
+
+            if ( (playerIndex === 0) && this.isSpectator ) {
+                this.dropZone.data.values.cards.push(card.render((this.dropZone.x), (this.dropZone.y + this.dropZone.input.hitArea.height/4), sprite).disableInteractive());
+            }
+            else if(playerIndex === this.playerIndex)
+            {
+                
+                this.dropZone.data.values.cards.push(card.render((this.dropZone.x), (this.dropZone.y + this.dropZone.input.hitArea.height/4), sprite).disableInteractive());
+            }
+            else if (playerIndex === this.rightPlayerIndex) {
+               this.dropZone.data.values.cards.push(card.render((this.dropZone.x + this.dropZone.input.hitArea.width/4 + 10 ), (this.dropZone.y), sprite).disableInteractive());
+            }
+            else if (playerIndex === this.frontPlayerIndex)
+            {
+                this.dropZone.data.values.cards.push(card.render((this.dropZone.x), (this.dropZone.y - this.dropZone.input.hitArea.height/4), sprite).disableInteractive());
+            }
+            else if (playerIndex === this.leftPlayerIndex)
+            {
+                this.dropZone.data.values.cards.push(card.render((this.dropZone.x - this.dropZone.input.hitArea.width/4 - 10), (this.dropZone.y), sprite).disableInteractive());
             }
 
             if (this.dropZone.data.values.cards.length === 1 )
@@ -72,7 +119,7 @@ class Game extends Phaser.Scene {
             {
                 console.log("Sub Round: "+this.RoundNumber+" End");
                 this.socket.emit("subRoundEnd", this.RoundNumber);
-            }
+            }*/
     }
 
     destroyTabledCard()
@@ -140,6 +187,7 @@ class Game extends Phaser.Scene {
                 {
                     if(this.playTurn === this.playerIndex )
                     {
+                        this.dropZone.setInteractive();
                         console.log("deal card: "+ this.dealCards[i].extra.value)
                         console.log("table suit: "+ this.tableSuit)
                         console.log("Cards on the dropZone: "+ this.dropZone.data.values.cards.length)
@@ -160,6 +208,7 @@ class Game extends Phaser.Scene {
                     }
                     else
                     {
+                        this.dropZone.setInteractive();
                         this.dealCards[i].disableInteractive();
                     }
                     
@@ -216,16 +265,17 @@ class Game extends Phaser.Scene {
     showTrumpSelectionView( dealCards )
     {
         //var suits = ["AC","AS","AD","AH"];
+        this.dropZone.disableInteractive();
         for (let i = 0; i < 4; i++) 
         {
             let trumpCard = new Card(this);
             trumpCard.extra.value = dealCards[i];
-            let renderedTrumpCard = trumpCard.render((70 + (i * 55))*this.widthScale, 220*this.heightScale, dealCards[i])
+            let renderedTrumpCard = trumpCard.render((78 + (i * 55))*this.widthScale, 245*this.heightScale, dealCards[i])
 
             //renderedTrumpCard.setInteractive();
             renderedTrumpCard.on('pointerdown', function()
             {
-                this.disableInteractive();
+                //this.disableInteractive();
                 console.log("Seleceted trup: "+trumpCard.extra.value.substr(1,1))
                 this.scene.socket.emit("trumpSelected",trumpCard.extra.value.substr(1,1));
                 //this.scene.updateRoundTrump(trumpCard.extra.value.substr(1,1));
@@ -249,6 +299,15 @@ class Game extends Phaser.Scene {
     updateRoundTrump(trump)
     {
         this.roundTrump.setTexture(trump);
+
+        if(trump === 'gray_back')
+        {
+            this.roundTrump.setAlpha(0);
+        }
+        else
+        {
+            this.roundTrump.setAlpha(1);
+        }
     }
 
     enableTurnArrow()
@@ -256,23 +315,23 @@ class Game extends Phaser.Scene {
         this.imgTurn.setAlpha(1);
         if(this.isSpectator && (this.playTurn === 0))
         {
-            this.imgTurn.setPosition(180*this.widthScale,380*this.heightScale);
+            this.imgTurn.setPosition(190*this.widthScale,380*this.heightScale);
         }
         else if(this.playTurn === this.playerIndex)
         {
-            this.imgTurn.setPosition(180*this.widthScale,380*this.heightScale); 
+            this.imgTurn.setPosition(190*this.widthScale,380*this.heightScale); 
         }
         else if(this.playTurn === this.rightPlayerIndex)
         {
-            this.imgTurn.setPosition(285*this.widthScale,225*this.heightScale);
+            this.imgTurn.setPosition(295*this.widthScale,225*this.heightScale);
         }
         else if(this.playTurn === this.frontPlayerIndex)
         {
-            this.imgTurn.setPosition(180*this.widthScale,120*this.heightScale); 
+            this.imgTurn.setPosition(190*this.widthScale,120*this.heightScale); 
         }
         else if(this.playTurn === this.leftPlayerIndex)
         {
-            this.imgTurn.setPosition(22*this.widthScale,225*this.heightScale)
+            this.imgTurn.setPosition(25*this.widthScale,225*this.heightScale)
         }
         else
         {
@@ -325,35 +384,40 @@ class Game extends Phaser.Scene {
 
         this.add.text(110*this.widthScale, 10*this.heightScale).setText([
             'Omi' 
-        ]).setFontSize(50).setFontFamily('Trebuchet MS');
+        ]).setFontSize(50*this.heightScale).setFontFamily('Trebuchet MS');
 
-        this.oponentScore = this.add.text(190*this.widthScale, 80*this.heightScale).setText([
+        this.oponentScore = this.add.text(185*this.widthScale, 80*this.heightScale).setText([
             'Opponent:  ',
             '  Match Points: '+ 0 ,
             '  Round Points: '+ 0, 
-        ]).setFontSize(12);
+        ]).setFontSize(11*this.heightScale)
 
         this.myScore = this.add.text(10*this.widthScale, 80*this.heightScale).setText([
             'You:  ' ,
             '  Match Points: '+ 0 ,
             '  Round Points: '+ 0, 
-        ]).setFontSize(12);
+        ]).setFontSize(11*this.heightScale)
 
         this.add.text(0*this.widthScale, 0*this.widthScale).setText([
             '  W: '+ window.innerWidth ,
             '  H: '+ window.innerHeight, 
-        ]).setFontSize(10);
+        ]).setFontSize(10*this.heightScale);
 
-        this.hQuitText = this.add.text(100*this.widthScale, 500*this.heightScale, ['END MATCH']).setFontSize(18*this.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
-        
-        this.quitText = this.add.text(125*this.widthScale, 475*this.heightScale, ['QUIT']).setFontSize(18*this.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
-        
-        this.inviteText = this.add.text(120*this.widthScale, 450*this.heightScale, ['INVITE']).setFontSize(18*this.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
+        this.inviteText = this.add.text(131*this.widthScale, 450*this.heightScale, ['INVITE']).setFontSize(18*this.heightScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
+        //this.inviteText.setScale(this.widthScale,this.heightScale);
 
-        this.roundTrump = this.add.image(150*this.widthScale, 80*this.heightScale).setScale(0.030*this.widthScale, 0.030*this.heightScale).disableInteractive();
+        //this.quitText = this.add.text(152*this.widthScale, 475*this.heightScale, ['QUIT']).setFontSize(18*this.widthScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
+        //this.quitText.setScale(this.widthScale,this.heightScale);
+
+        this.hQuitText = this.add.text(112*this.widthScale, 490*this.heightScale, ['END MATCH']).setFontSize(18*this.heightScale).setFontFamily('Trebuchet MS').setColor('#ffffff').setInteractive();
+        //this.hQuitText.setScale(this.widthScale,this.heightScale);
+
+
+        this.roundTrump = this.add.image(160*this.widthScale, 80*this.heightScale).setScale(0.030*this.widthScale, 0.030*this.heightScale).disableInteractive();
         this.roundTrump.setTexture('gray_back');
+        this.roundTrump.setAlpha(0);
 
-        this.imgTurn = this.add.image(50*this.widthScale, 50*this.heightScale).setScale(0.030*this.widthScale, 0.030*this.heightScale).disableInteractive();
+        this.imgTurn = this.add.image(50*this.widthScale, 50*this.heightScale).setScale(0.010*this.widthScale, 0.010*this.heightScale).disableInteractive();
         this.imgTurn.setTexture('turn');
         this.imgTurn.setAlpha(0);
 
@@ -421,11 +485,11 @@ class Game extends Phaser.Scene {
             self.subScores  = [0, 0, 0, 0];
             self.RoundNumber = 1;
             self.playTurn = playTurn;
-            self.enableTurnArrow();
-
-            self.roundTrump.setTexture('gray_back');
+            
             self.subRoundFinalize().then(function(){
                 console.log("Selecting trump: "+playTurn);
+                self.enableTurnArrow();
+                self.updateRoundTrump('gray_back');
                 if( !self.isSpectator && (self.playTurn === self.playerIndex ))
                 {
                     //self.dealer.dealCards(dealCards[self.playerIndex]);
@@ -614,11 +678,15 @@ class Game extends Phaser.Scene {
         this.socket.on('cardPlayed', function (gameObject, playerIndex, playTurn) {
 
             console.log("Rendering tabled card by :"+ playerIndex );
-            self.renderTabledCard( gameObject, playerIndex );
-
-            self.playTurn = playTurn;
-            self.updateDealCardInterativity();
-            self.enableTurnArrow();
+            self.renderTabledCard( gameObject, playerIndex ).then(function(roundEnd)
+            {
+                if(!roundEnd)
+                {
+                    self.playTurn = playTurn;
+                    self.updateDealCardInterativity();
+                    self.enableTurnArrow();
+                }
+            }.bind(self));
         })
 
         //this.showTrumpSelectionView();
@@ -635,7 +703,7 @@ class Game extends Phaser.Scene {
             self.hQuitText.setColor('#ffffff');
         })
 
-        this.quitText.on('pointerdown', function () {
+        /*this.quitText.on('pointerdown', function () {
             FBInstant.quit();
         })
 
@@ -645,7 +713,7 @@ class Game extends Phaser.Scene {
 
         this.quitText.on('pointerout', function () {
             self.quitText.setColor('#ffffff');
-        })
+        })*/
 
         this.inviteText.on('pointerdown', function () 
         {
@@ -701,7 +769,7 @@ class Game extends Phaser.Scene {
         this.inviteText.on('pointerout', function () {
             self.inviteText.setColor('#ffffff');
         })
-
+/*
         this.input.on('drag', function (pointer, gameObject, dragX, dragY) {
             gameObject.x = dragX;
             gameObject.y = dragY;
@@ -729,11 +797,11 @@ class Game extends Phaser.Scene {
             gameObject.disableInteractive();
             self.children.bringToTop(gameObject);
             //console.log("game obj value: "+gameObject.extra.value)*/
-            console.log("game obj value: "+gameObject.extra.value)
+            /*console.log("game obj value: "+gameObject.extra.value)
             self.socket.emit('cardPlayed', gameObject, gameObject.extra.value, self.playerIndex);
-            gameObject.destroy(); // Because dragend event hold the card at where it was last placed
+            gameObject.destroy(); // Because dragend event hold the card at where it was last placed(Later need to change to remove this card onece event recevied)
 
-        })
+        })*/
     }
 
     update() {
