@@ -261,10 +261,6 @@ io.on('connection', function (socket) {
         io.emit('isPlayerA');
     };
 
-    /*socket.on('dealCards', function () {
-        io.emit('dealCards');
-    });*/
-
     socket.on('cardPlayed', function (gameObject, cardValue, playerIndex) {
 
         console.log("Played Card: " + cardValue);
@@ -280,7 +276,6 @@ io.on('connection', function (socket) {
             playStarted =true;
             console.log("Play Started")
             io.emit('selectTrump', playTurn, dealCards);
-            //io.emit('dealCards', dealCards, playTurn);
         }
     });
 
@@ -325,11 +320,6 @@ io.on('connection', function (socket) {
             }
         }
     });
-/*
-    socket.on('dealCards', function () {
-        dealCards = getDeal();
-        io.emit('dealCards', dealCards, playTurn);
-    });*/
 
     socket.on('playerLoggedIn', function (player) {
         console.log("A player Logged in: "+ player.playerName);
@@ -350,7 +340,7 @@ io.on('connection', function (socket) {
                 players.push(player);
             }
         }
-        io.emit('playerAdded', players, tabledCards, dealCards, playTurn, trump, playStarted );
+        io.emit('playerAdded', players, tabledCards, dealCards, playTurn, trump, playStarted, subScores, mainScores );
     });
 
     socket.on('disconnect', function () {
