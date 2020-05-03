@@ -225,11 +225,11 @@ class Game extends Phaser.Scene {
             //renderedTrumpCard.setInteractive();
             renderedTrumpCard.on('pointerdown', function()
             {
-                //this.disableInteractive();
+                this.disableInteractive();
                 console.log("Seleceted trup: "+trumpCard.extra.value.substr(1,1))
                 this.scene.socket.emit("trumpSelected",trumpCard.extra.value.substr(1,1));
                 //this.scene.updateRoundTrump(trumpCard.extra.value.substr(1,1));
-                this.scene.discardTrumpSelectionView();
+                //this.scene.discardTrumpSelectionView();
             })
             this.trumpCards.push(renderedTrumpCard);      
             // let opponentCard = new Card(scene);
@@ -591,9 +591,16 @@ class Game extends Phaser.Scene {
             
             self.inviteText.disableInteractive();
             self.inviteText.setAlpha(0);
+
             self.playTurn = playTurn;
 
             console.log("Trump Selected: "+trump);
+
+            if(self.playTurn === self.playerIndex)
+            {
+                self.discardTrumpSelectionView();
+            }
+
             self.updateRoundTrump(trump);
             self.enableTurnArrow();
 
