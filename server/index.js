@@ -16,12 +16,14 @@ let playStarted = false;
 let gameEnd = false;
 let mainRoundEnd = false;
 let subRoundEnd = false;
+let isRoundTrumpSelected = false;
 
 let maxCardIndex = -1
 let playTurn = 0;
 let lastPlayTurn = 0;
 let roundStartPlayTurn = 0;
 let subRoundNumber = 1;
+let mainRoundNumber = 1;
 let orderedDeck = ["7C","7D","7H","7S","8C","8D","8H","8S",
                    "9C","9D","9H","9S","IC","ID","IH","IS",
                    "JC","JD","JH","JS","QC","QD","QH","QS",
@@ -42,12 +44,14 @@ var resetTable = function()
             gameEnd = false;
             mainRoundEnd = false;
             subRoundEnd = false;
+            isRoundTrumpSelected = false;
 
             maxCardIndex = -1
             roundStartPlayTurn = 0;
             lastPlayTurn = 0;
             playTurn = 0;
             subRoundNumber = 1;
+            mainRoundNumber = 1;
 }
 
 var suffle = function()
@@ -242,6 +246,8 @@ var processSubRound = function()
         roundStartPlayTurn = (roundStartPlayTurn+1)%4;
         console.log("roundStartPlayTurn2: "+roundStartPlayTurn);
         playTurn = roundStartPlayTurn;
+        mainRoundNumber++;
+        isRoundTrumpSelected = false;
     }
     else
     {
@@ -272,9 +278,12 @@ io.on('connection', function (socket) {
         
         if(!playStarted)
         {
-            dealCards = getDeal();
             playStarted =true;
+            mainRoundNumber = 1;
+            subRoundNumber = 1;
             console.log("Play Started")
+
+            dealCards = getDeal();
             io.emit('selectTrump', playTurn, dealCards);
         }
     });
@@ -285,11 +294,15 @@ io.on('connection', function (socket) {
     });
 
     socket.on('trumpSelected', function (roundTrump) {
+        console.log("isRoundTrumpSelected: "+isRoundTrumpSelected);
         //dealCards = getDeal();
-
-        trump = roundTrump;
-        console.log("Round trump selected: "+ trump);
-        io.emit('dealCards', dealCards, playTurn, trump);
+        if(!isRoundTrumpSelected)
+        {
+            trump = roundTrump;
+            isRoundTrumpSelected = true;
+            console.log("Round trump selected: "+ trump);
+            io.emit('dealCards', dealCards, playTurn, trump);
+        }
     });
     
 
@@ -304,14 +317,14 @@ io.on('connection', function (socket) {
             if( subRoundEnd )
             { 
                 subRoundEnd = false;
-                io.emit('subRoundEnd', playTurn, subScores);
+                io.emit('subRoundEnd', playTurn, subScores, subRoundNumber);
             }
             else if( mainRoundEnd )
             {
                 dealCards = getDeal();
                 trump = "gray_back";
                 mainRoundEnd = false;
-                io.emit('mainRoundEnd', playTurn, mainScores, dealCards);
+                io.emit('mainRoundEnd', playTurn, mainScores, dealCards, mainRoundNumber);
             }
             else if( gameEnd )
             {
@@ -340,7 +353,7 @@ io.on('connection', function (socket) {
                 players.push(player);
             }
         }
-        io.emit('playerAdded', players, tabledCards, dealCards, playTurn, trump, playStarted, subScores, mainScores );
+        io.emit('playerAdded', players, tabledCards, dealCards, playTurn, trump, playStarted, subScores, mainScores, subRoundNumber, mainRoundNumber );
     });
 
     socket.on('disconnect', function () {
