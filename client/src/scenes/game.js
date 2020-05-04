@@ -74,8 +74,8 @@ class Game extends Phaser.Scene {
             }
             else if (this.dropZone.data.values.cards.length === 4 )
             {
-                console.log("Sub Round: "+this.RoundNumber+" End");
-                this.socket.emit("subRoundEnd", this.RoundNumber);
+                console.log("Sub Round: "+this.subRoundNumber+" End");
+                this.socket.emit('subRoundEnd', this.subRoundNumber);
                 resolve(true);
             }
             else
@@ -117,8 +117,8 @@ class Game extends Phaser.Scene {
             }
             else if (this.dropZone.data.values.cards.length === 4 )
             {
-                console.log("Sub Round: "+this.RoundNumber+" End");
-                this.socket.emit("subRoundEnd", this.RoundNumber);
+                console.log("Sub Round: "+this.subRoundNumber+" End");
+                this.socket.emit("subRoundEnd", this.subRoundNumber);
             }*/
     }
 
@@ -142,14 +142,18 @@ class Game extends Phaser.Scene {
 
     disableAllDealCards()
     {
-        console.log( "On disableDealCards length: "+ this.dealCards.length );
-        for(var i = 0; i < this.dealCards.length ; i++)
+        return new Promise(function(resolve)
         {
-            if(this.dealCards[i].scene) // skip the refferences to the objects that we destroy at on drop event
+            console.log( "On disableDealCards length: "+ this.dealCards.length );
+            for(var i = 0; i < this.dealCards.length ; i++)
             {
-                this.dealCards[i].disableInteractive();
+                if(this.dealCards[i].scene) // skip the refferences to the objects that we destroy at on drop event
+                {
+                    this.dealCards[i].disableInteractive();
+                }
             }
-        }
+            resolve();
+        }.bind(this));
     }
 
     enableAllDealCards()
@@ -171,6 +175,7 @@ class Game extends Phaser.Scene {
             console.log("updateDealCardInterativity");
             console.log("play turn: "+ this.playTurn);
             console.log("player index: "+ this.playerIndex);
+            
            /* if(this.playTurn === this.playerIndex )
             {
                 this.enableAllDealCards();
@@ -187,7 +192,7 @@ class Game extends Phaser.Scene {
                 {
                     if(this.playTurn === this.playerIndex )
                     {
-                        this.dropZone.setInteractive();
+                        //this.dropZone.setInteractive();
                         console.log("deal card: "+ this.dealCards[i].extra.value)
                         console.log("table suit: "+ this.tableSuit)
                         console.log("Cards on the dropZone: "+ this.dropZone.data.values.cards.length)
@@ -208,7 +213,7 @@ class Game extends Phaser.Scene {
                     }
                     else
                     {
-                        this.dropZone.setInteractive();
+                        //this.dropZone.setInteractive();
                         this.dealCards[i].disableInteractive();
                     }
                     
@@ -264,7 +269,7 @@ class Game extends Phaser.Scene {
 
     showTrumpSelectionView( dealCards )
     {
-        //var suits = ["AC","AS","AD","AH"];
+        console.log("Disable the drop zone");
         this.dropZone.disableInteractive();
         for (let i = 0; i < 4; i++) 
         {
@@ -277,7 +282,7 @@ class Game extends Phaser.Scene {
             {
                 //this.disableInteractive();
                 console.log("Seleceted trup: "+trumpCard.extra.value.substr(1,1))
-                this.scene.socket.emit("trumpSelected",trumpCard.extra.value.substr(1,1));
+                this.scene.socket.emit('trumpSelected',trumpCard.extra.value.substr(1,1));
                 //this.scene.updateRoundTrump(trumpCard.extra.value.substr(1,1));
                 //this.scene.discardTrumpSelectionView();
             })
@@ -289,11 +294,15 @@ class Game extends Phaser.Scene {
 
     discardTrumpSelectionView()
     {
-        console.log("discard the trump selection")
-        while(this.trumpCards.length)
+        return new Promise(function(resolve)
         {
-            this.trumpCards.shift().destroy();
-        }
+            console.log("discard the trump selection")
+            while(this.trumpCards.length)
+            {
+                this.trumpCards.shift().destroy();
+            }
+            resolve();
+        }.bind(this));
     }
 
     updateRoundTrump(trump)
@@ -367,7 +376,8 @@ class Game extends Phaser.Scene {
         this.isSpectator = true;
         this.tableID = -1;
         this.playTurn = -1;
-        this.RoundNumber = 1;
+        this.subRoundNumber = 1;
+        this.mainRoundNumber = 1;
 
         this.tableSuit = ''
         this.playStarted = false;
@@ -459,16 +469,15 @@ class Game extends Phaser.Scene {
 
             if( !self.isSpectator && self.playTurn === self.playerIndex)
             {
-                //self.dealer.dealCards(dealCards[self.playerIndex]);
                 self.showTrumpSelectionView(dealCards[self.playerIndex]);
             }
         });
 
-        this.socket.on('subRoundEnd', function (playTurn, subScores) {
+        this.socket.on('subRoundEnd', function (playTurn, subScores, subRoundNumber) {
             console.log("subRoundEnd received");
             console.log("subScores: "+subScores)
             self.playTurn = playTurn;
-            self.RoundNumber = 1+ (self.RoundNumber)%8;
+            self.subRoundNumber = subRoundNumber;
 
             self.subScores = subScores;
             self.subRoundFinalize().then(function(){
@@ -477,13 +486,14 @@ class Game extends Phaser.Scene {
             }.bind(self));
         });
 
-        this.socket.on('mainRoundEnd', function (playTurn, mainScores, dealCards) {
+        this.socket.on('mainRoundEnd', function (playTurn, mainScores, dealCards, mainRoundNumber) {
             console.log("mainRoundEnd received");
             console.log("mainScores: "+mainScores);
 
             self.mainScores = mainScores;
             self.subScores  = [0, 0, 0, 0];
-            self.RoundNumber = 1;
+            self.subRoundNumber = 1;
+            self.mainRoundNumber = mainRoundNumber;
             self.playTurn = playTurn;
             
             self.subRoundFinalize().then(function(){
@@ -492,10 +502,7 @@ class Game extends Phaser.Scene {
                 self.updateRoundTrump('gray_back');
                 if( !self.isSpectator && (self.playTurn === self.playerIndex ))
                 {
-                    //self.dealer.dealCards(dealCards[self.playerIndex]);
                     self.showTrumpSelectionView(dealCards[self.playerIndex]);
-                    //self.dealer.dealCards(dealCards[self.playerIndex]);
-                // self.updateDealCardInterativity()
                 }
             }.bind(self));
         });
@@ -503,7 +510,7 @@ class Game extends Phaser.Scene {
         this.socket.on('gameEnd', function (mainScores) {
             console.log("gameEnd received");
             console.log("mainScores: "+mainScores);
-            self.RoundNumber = 1;
+            self.subRoundNumber = 1;
 
             self.mainScores = mainScores;
             self.subScores  = [0, 0, 0, 0] 
@@ -525,10 +532,12 @@ class Game extends Phaser.Scene {
         });
         
 
-        this.socket.on('playerAdded', function (players, tabledCards, dealCards, playTurn, trump, playStarted, subScores, mainScores) {
+        this.socket.on('playerAdded', function (players, tabledCards, dealCards, playTurn, trump, playStarted, subScores, mainScores, subRoundNumber, mainRoundNumber) {
 
             console.log("On Player Added");
             self.playTurn = playTurn;
+            self.subRoundNumber = subRoundNumber;
+            self.mainRoundNumber = mainRoundNumber;
 
             if(!self.playStarted)
             {
@@ -617,7 +626,6 @@ class Game extends Phaser.Scene {
 
                         if( !self.isSpectator && (self.playTurn === self.playerIndex))
                         {
-                            //self.dealer.dealCards(dealCards[self.playerIndex]);
                             self.showTrumpSelectionView(dealCards[self.playerIndex]);
                         }
                     }
@@ -633,8 +641,10 @@ class Game extends Phaser.Scene {
 
                         if( !self.isSpectator && dealCards.length > 0  )
                         {
-                            self.dealer.dealCards(dealCards[self.playerIndex]);
-                            self.updateDealCardInterativity();
+                            self.dealer.dealCards(dealCards[self.playerIndex]).then(function()
+                            {
+                                self.updateDealCardInterativity();
+                            }.bind(self));
                         }
                     }
                     else
@@ -652,6 +662,8 @@ class Game extends Phaser.Scene {
         })
 
         this.socket.on('dealCards', function (dealCards, playTurn, trump) {
+
+            console.log("Dealing cards")
             
             self.inviteText.disableInteractive();
             self.inviteText.setAlpha(0);
@@ -662,7 +674,11 @@ class Game extends Phaser.Scene {
 
             if(self.playTurn === self.playerIndex)
             {
-                self.discardTrumpSelectionView();
+                self.discardTrumpSelectionView().then(function()
+                {
+                    console.log("Enabele the drop zone");
+                    self.dropZone.setInteractive();
+                });
             }
 
             self.updateRoundTrump(trump);
@@ -670,8 +686,10 @@ class Game extends Phaser.Scene {
 
             if(!self.isSpectator)
             {
-                self.dealer.dealCards(dealCards[self.playerIndex]);
-                self.updateDealCardInterativity();
+                self.dealer.dealCards(dealCards[self.playerIndex]).then(function()
+                {
+                    self.updateDealCardInterativity();
+                }.bind(self));
             }
         })
 
