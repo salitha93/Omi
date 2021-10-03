@@ -1,1 +1,1 @@
-7z a -tzip omi.zip client_fb_upload
+7z a omi.zip ./client_fb_upload/*	

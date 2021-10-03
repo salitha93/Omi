@@ -3,6 +3,7 @@
 Check out the repository
 
 Install NodeJS
+Install 7zip
 
 Update below parameters in ./upload.sh
 	{App ID}
