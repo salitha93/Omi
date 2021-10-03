@@ -1,0 +1,1 @@
+7z a omi.zip ./client_fb_upload/*	

@@ -1,0 +1,1 @@
+curl -X POST https://graph-video.facebook.com/{App ID}/assets -F 'access_token={ASSET UPLOAD ACCESS TOKEN}' -F 'type=BUNDLE' -F 'asset=@./omi.zip' -F 'comment=Graph API upload'
